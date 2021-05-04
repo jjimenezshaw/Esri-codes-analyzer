@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="content-type" content="text/html;charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="Javier Jimenez Shaw">
+</head>
+
+<body onload="load()">
+    <h1>ESRI deprecated CRSs in EPSG</h1>
+    <table style="" id="table">
+      <tr>
+        <th>ESRI code</th>
+        <th>ESRI name</th>
+        <th>Description</th>
+        <th>EPSG code</th>
+        <th>EPSG link</th>
+      </tr>
+    </table>
+
+    <script>
+        let url = '../Esri_projection-engine-db-doc/json/pe_list_projcs.json';
+        url = 'https://github.com/Esri/projection-engine-db-doc/raw/master/json/pe_list_projcs.json';
+        function load() {
+            fetch(url, {
+                method: "GET", 
+            })
+            .then(response => response.json())
+            .then(data => { 
+                let arr = data.ProjectedCoordinateSystems;
+                let table = document.querySelector('#table');
+                let dict = arr.reduce(
+                function (acc, curr) {
+                    acc[curr.wkid] = Object.keys(curr)
+                        .filter((key) => ['latestWkid', 'name', 'description', 'authority', 'deprecated'].includes(key))
+                        .reduce((accK, curK) => ({ ...accK, [curK]: curr[curK] }), {});
+                    return acc;
+                }
+                , {});
+                console.log(dict);
+
+                arr.forEach(element => {
+                    if (element.deprecated === "yes" && element.authority === "Esri" && 
+                        element.wkid != element.latestWkid && dict[element.latestWkid] && dict[element.latestWkid].authority === 'EPSG') {
+                        let row = table.insertRow();
+                        row.insertCell().innerHTML = element.wkid;
+                        row.insertCell().innerHTML = element.name;
+                        row.insertCell().innerHTML = element.description;
+                        row.insertCell().innerHTML = element.latestWkid;
+                        row.insertCell().innerHTML = '<a href="https://epsg.org/crs/wkt/id/' + 
+                                element.latestWkid + '" target=_blank>EPSG:' + element.latestWkid + '</a>';
+                    }
+                });
+            });
+        }
+    </script>
+</body>
+</html>
