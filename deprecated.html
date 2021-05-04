@@ -5,41 +5,58 @@
     <meta http-equiv="content-type" content="text/html;charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="author" content="Javier Jimenez Shaw">
+    <style>
+        thead { font-weight: bold; }
+        tbody tr:nth-child(odd) { background-color: #EEEEEE; }
+    </style>
 </head>
 
 <body onload="load()">
     <h1>ESRI deprecated CRSs in EPSG</h1>
-    <table style="" id="table">
-      <tr>
-        <th>ESRI code</th>
-        <th>ESRI name</th>
-        <th>Description</th>
-        <th>EPSG code</th>
-        <th>EPSG link</th>
-      </tr>
-    </table>
+    <div id="index">
+        <div><a href="#ProjectedCoordinateSystems">ProjectedCoordinateSystems</a></div>
+        <div><a href="#GeographicCoordinateSystems">GeographicCoordinateSystems</a></div>
+        <div><a href="#VerticalCoordinateSystems">VerticalCoordinateSystems</a></div>
+        <div><a href="#HVCoordinateSystems">HVCoordinateSystems</a></div>
+    </div>
+    <div id="tables">
+        <h2>ProjectedCoordinateSystems</h2>
+        <table id="ProjectedCoordinateSystems"></table>
+        <h2>GeographicCoordinateSystems</h2>
+        <table id="GeographicCoordinateSystems"></table>
+        <h2>VerticalCoordinateSystems</h2>
+        <table id="VerticalCoordinateSystems"></table>
+        <h2>HVCoordinateSystems</h2>
+        <table id="HVCoordinateSystems"></table>
+    </div>
 
     <script>
-        let url = '../Esri_projection-engine-db-doc/json/pe_list_projcs.json';
-        url = 'https://github.com/Esri/projection-engine-db-doc/raw/master/json/pe_list_projcs.json';
-        url = 'https://raw.githubusercontent.com/Esri/projection-engine-db-doc/master/json/pe_list_projcs.json';
-        function load() {
+        let urlPrefix = 'https://raw.githubusercontent.com/Esri/projection-engine-db-doc/master/json/';
+
+        let cs = [
+            { name: 'ProjectedCoordinateSystems', file: 'pe_list_projcs.json' },
+            { name: 'GeographicCoordinateSystems', file: 'pe_list_geogcs.json'},
+            { name: 'VerticalCoordinateSystems', file: 'pe_list_vertcs.json'},
+            { name: 'HVCoordinateSystems', file: 'pe_list_hvcoordsys.json'},
+        ];
+
+        function runit(name, file) {
+            let url = urlPrefix + file; 
             fetch(url, {
                 method: "GET", 
             })
             .then(response => response.json())
             .then(data => { 
-                let arr = data.ProjectedCoordinateSystems;
-                let table = document.querySelector('#table');
+                let arr = data[name];
+                let table = document.querySelector('#' + name + ' > tbody');
                 let dict = arr.reduce(
-                function (acc, curr) {
-                    acc[curr.wkid] = Object.keys(curr)
-                        .filter((key) => ['latestWkid', 'name', 'description', 'authority', 'deprecated'].includes(key))
-                        .reduce((accK, curK) => ({ ...accK, [curK]: curr[curK] }), {});
-                    return acc;
-                }
+                    function (acc, curr) {
+                        acc[curr.wkid] = Object.keys(curr)
+                            .filter((key) => ['latestWkid', 'name', 'description', 'authority', 'deprecated'].includes(key))
+                            .reduce((accK, curK) => ({ ...accK, [curK]: curr[curK] }), {});
+                        return acc;
+                    }
                 , {});
-                console.log(dict);
 
                 arr.forEach(element => {
                     if (element.deprecated === "yes" && element.authority === "Esri" && 
@@ -54,6 +71,18 @@
                     }
                 });
             });
+        }
+
+        function load() {
+            cs.forEach(s => {
+                let tb = document.querySelector('#' + s.name);
+                let header = tb.createTHead();
+                let row = header.insertRow();
+                ['ESRI code', 'ESRI name', 'Description', 'EPSG code', 'EPSG link'].forEach(e => row.insertCell().innerHTML = e);
+                let tblBody = document.createElement('tbody');
+                tb.appendChild(tblBody);
+            });
+            cs.forEach(s => runit(s.name, s.file));
         }
     </script>
 </body>
