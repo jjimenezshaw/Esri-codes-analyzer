@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="content-type" content="text/html;charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="Javier Jimenez Shaw">
+    <style>
+        thead { font-weight: bold; }
+        tbody tr:nth-child(odd) { background-color: #EEEEEE; }
+    </style>
+</head>
+
+<body onload="load()">
+    <h1>ESRI not deprecated CRS</h1>
+    <div id="index">
+        <div><a href="#ProjectedCoordinateSystems">ProjectedCoordinateSystems</a></div>
+        <div><a href="#GeographicCoordinateSystems">GeographicCoordinateSystems</a></div>
+        <div><a href="#VerticalCoordinateSystems">VerticalCoordinateSystems</a></div>
+    </div>
+    <div id="tables">
+        <h2>ProjectedCoordinateSystems</h2>
+        <table id="ProjectedCoordinateSystems"></table>
+        <h2>GeographicCoordinateSystems</h2>
+        <table id="GeographicCoordinateSystems"></table>
+        <h2>VerticalCoordinateSystems</h2>
+        <table id="VerticalCoordinateSystems"></table>
+    </div>
+
+    <script>
+        let urlPrefix = 'https://raw.githubusercontent.com/Esri/projection-engine-db-doc/master/json/';
+
+        let cs = [
+            { name: 'ProjectedCoordinateSystems', file: 'pe_list_projcs.json' },
+            { name: 'GeographicCoordinateSystems', file: 'pe_list_geogcs.json'},
+            { name: 'VerticalCoordinateSystems', file: 'pe_list_vertcs.json'},
+        ];
+
+        function runit(name, file) {
+            let url = urlPrefix + file; 
+            fetch(url, {
+                method: "GET", 
+            })
+            .then(response => response.json())
+            .then(data => { 
+                let arr = data[name];
+                let table = document.querySelector('#' + name + ' > tbody');
+                let dict = arr.reduce(
+                    function (acc, curr) {
+                        acc[curr.wkid] = Object.keys(curr)
+                            .filter((key) => ['latestWkid', 'name', 'description', 'authority', 'deprecated'].includes(key))
+                            .reduce((accK, curK) => ({ ...accK, [curK]: curr[curK] }), {});
+                        return acc;
+                    }
+                , {});
+
+                let count = 0;
+                arr.forEach(element => {
+                    if (element.deprecated === "no" && element.authority === "Esri") {
+                        let row = table.insertRow();
+                        row.insertCell().innerHTML = element.wkid;
+                        row.insertCell().innerHTML = element.name;
+                        row.insertCell().innerHTML = element.description;
+                        count += 1;
+                    }
+                });
+                let el = document.createElement('div');
+                el.innerHTML = 'Count: ' + count;
+                let t = document.querySelector('#' + name);
+                t.parentNode.insertBefore(el, t.nextSibling);
+            });
+        }
+
+        function load() {
+            cs.forEach(s => {
+                let tb = document.querySelector('#' + s.name);
+                let header = tb.createTHead();
+                let row = header.insertRow();
+                ['ESRI code', 'ESRI name', 'Description'].forEach(e => row.insertCell().innerHTML = e);
+                let tblBody = document.createElement('tbody');
+                tb.appendChild(tblBody);
+            });
+            cs.forEach(s => runit(s.name, s.file));
+        }
+    </script>
+</body>
+</html>
